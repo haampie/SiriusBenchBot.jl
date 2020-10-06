@@ -20,57 +20,57 @@ User-provided config options.
 """
 struct ConfigOptions
     reference_spec::Union{Nothing,String}
-    reference_args::Union{Nothing,Vector{String}}
+    reference_cmd::Union{Nothing,Vector{String}}
     spec::Union{Nothing,String}
-    args::Union{Nothing,Vector{String}}
+    cmd::Union{Nothing,Vector{String}}
 end
 
 ConfigOptions() = ConfigOptions(nothing, nothing, nothing, nothing)
 
 function dict_to_settings(dict)
-    # top level spec / args
+    # top level spec / cmd
     default_spec = get(dict, "spec", nothing)
-    default_args = get(dict, "args", nothing)
+    default_cmd = get(dict, "cmd", nothing)
 
     # reference level settings
     if (reference = get(dict, "reference", nothing)) !== nothing
         reference_spec = get(reference, "spec", nothing)
-        reference_args = get(reference, "args", nothing)
+        reference_cmd = get(reference, "cmd", nothing)
     else
         reference_spec = nothing
-        reference_args = nothing
+        reference_cmd = nothing
     end
 
     if reference_spec === nothing
         reference_spec = default_spec
     end
 
-    if reference_args === nothing
-        reference_args = default_args
+    if reference_cmd === nothing
+        reference_cmd = default_cmd
     end
 
     # current level settings
     if (current = get(dict, "current", nothing)) !== nothing
         current_spec = get(current, "spec", nothing)
-        current_args = get(current, "args", nothing)
+        current_cmd = get(current, "cmd", nothing)
     else
         current_spec = nothing
-        current_args = nothing
+        current_cmd = nothing
     end
 
     if current_spec === nothing
         current_spec = default_spec
     end
 
-    if current_args === nothing
-        current_args = default_args
+    if current_cmd === nothing
+        current_cmd = default_cmd
     end
 
     return ConfigOptions(
         reference_spec,
-        reference_args,
+        reference_cmd,
         current_spec,
-        current_args
+        current_cmd
     )
 end
 
@@ -125,13 +125,13 @@ function handle_comment(event, phrase::RegexMatch)
         "type" => "compare",
         "reference" => OrderedDict(
             "spec" => something(config.reference_spec, "sirius@develop"),
-            "args" => something(config.reference_args, String[]),
+            "cmd" => something(config.reference_cmd, String[]),
             "repo" => reference_repo,
             "sha" => reference_sha
         ),
         "current" => OrderedDict(
             "spec" => something(config.spec, "sirius@develop"),
-            "args" => something(config.args, String[]),
+            "cmd" => something(config.cmd, String[]),
             "repo" => current_repo,
             "sha" => current_sha
         ),

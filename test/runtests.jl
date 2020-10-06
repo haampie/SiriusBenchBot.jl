@@ -13,7 +13,7 @@ import SiriusBenchBot: options_from_comment
 
         result = options_from_comment(no_options)
 
-        @test result.reference_spec === result.reference_args === result.spec === result.args === nothing
+        @test result.reference_spec === result.reference_cmd === result.spec === result.cmd === nothing
     end
 
     @testset "Only top-level options" begin
@@ -30,7 +30,7 @@ import SiriusBenchBot: options_from_comment
         result = options_from_comment(only_top_level)
 
         @test result.reference_spec == result.spec == "sirius@develop ^spla@2.0.0"
-        @test result.reference_args === result.args === nothing
+        @test result.reference_cmd === result.cmd === nothing
     end
 
     @testset "All level options" begin
@@ -41,22 +41,22 @@ import SiriusBenchBot: options_from_comment
 
             ```
             spec: sirius@develop ^spla@2.0.0
-            args: ["--some-arg", "--another"]
+            cmd: ["sirius.scf", "--some-arg", "--another"]
 
             current:
                 spec: sirius@develop +new_feature
             
             reference:
-                args: ["--different", "--arguments"]
+                cmd: ["sirius.scf", "--different", "--arguments"]
             ```
             """
 
         result = options_from_comment(all_level_options)
 
         @test result.reference_spec == "sirius@develop ^spla@2.0.0"
-        @test result.reference_args == ["--different", "--arguments"]
+        @test result.reference_cmd == ["sirius.scf", "--different", "--arguments"]
         @test result.spec == "sirius@develop +new_feature"
-        @test result.args == ["--some-arg", "--another"]
+        @test result.cmd == ["sirius.scf", "--some-arg", "--another"]
     end
 
     @testset "No defaults" begin
@@ -68,20 +68,20 @@ import SiriusBenchBot: options_from_comment
             ```
             current:
                 spec: sirius@develop +new_feature
-                args: ["-x", "-y"]
+                cmd: ["sirius.scf", "-x", "-y"]
             
             reference:
                 spec: "sirius@6.5.4"
-                args: ["-a", "-b"]
+                cmd: ["sirius.scf", "-a", "-b"]
             ```
             """
 
         result = options_from_comment(all_level_options)
 
         @test result.reference_spec == "sirius@6.5.4"
-        @test result.reference_args == ["-a", "-b"]
+        @test result.reference_cmd == ["sirius.scf", "-a", "-b"]
         @test result.spec == "sirius@develop +new_feature"
-        @test result.args == ["-x", "-y"]
+        @test result.cmd == ["sirius.scf", "-x", "-y"]
     end
 
     @testset "Invalid YAML" begin
@@ -96,6 +96,6 @@ import SiriusBenchBot: options_from_comment
             """
         result = options_from_comment(invalid_yaml)
 
-        @test result.reference_spec === result.reference_args === result.spec === result.args === nothing
+        @test result.reference_spec === result.reference_cmd === result.spec === result.cmd === nothing
     end
 end
