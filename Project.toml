@@ -1,0 +1,13 @@
+name = "SiriusBenchBot"
+uuid = "99403c5b-13e6-41f7-a2e8-69034eac07fb"
+authors = ["Harmen Stoppels <harmenstoppels@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+GitHub = "bc5e4493-9b4d-5f90-b8aa-2b2bcaad7a26"
+HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
+OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
+Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
+YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
