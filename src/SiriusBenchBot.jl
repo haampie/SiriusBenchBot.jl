@@ -6,7 +6,7 @@ import Sockets: IPv4
 import Base: RefValue
 
 # If a comment matches this regex, it starts a bench
-const trigger = r".*@siriusbot run.*"ms
+const trigger = r".*@electronic-structure run.*"ms
 
 # We push a commit to this repo to trigger pipelines.
 const benchmark_repo = "git@gitlab.com:cscs-ci/electronic-structure/benchmarking.git"
