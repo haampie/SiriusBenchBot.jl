@@ -14,27 +14,32 @@ const benchmark_repo = "git@gitlab.com:cscs-ci/electronic-structure/benchmarking
 
 # Just keep the auth bit as a global const value, but defer logging in to starting the
 # server, so keep it around as a Union{Nothing,OAuth2} for now.
-const auth::RefValue{Union{Nothing,OAuth2}} = nothing
+const auth = RefValue{Union{Nothing,OAuth2}}(nothing)
 
 """
 User-provided config options.
 """
 struct ConfigOptions
     reference_spec::Union{Nothing,String}
-    reference_args::Union{Nothing,String}
+    reference_args::Union{Nothing,Vector{String}}
     spec::Union{Nothing,String}
-    args::Union{Nothing,String}
+    args::Union{Nothing,Vector{String}}
 end
+
+ConfigOptions() = ConfigOptions(nothing, nothing, nothing, nothing)
 
 function dict_to_settings(dict)
     # top level spec / args
-    default_spec = get(reference, "spec", nothing)
-    default_args = get(reference, "args", nothing)
+    default_spec = get(dict, "spec", nothing)
+    default_args = get(dict, "args", nothing)
 
     # reference level settings
     if (reference = get(dict, "reference", nothing)) !== nothing
         reference_spec = get(reference, "spec", nothing)
         reference_args = get(reference, "args", nothing)
+    else
+        reference_spec = nothing
+        reference_args = nothing
     end
 
     if reference_spec === nothing
@@ -49,6 +54,9 @@ function dict_to_settings(dict)
     if (current = get(dict, "current", nothing)) !== nothing
         current_spec = get(current, "spec", nothing)
         current_args = get(current, "args", nothing)
+    else
+        current_spec = nothing
+        current_args = nothing
     end
 
     if current_spec === nothing
@@ -79,7 +87,7 @@ function options_from_comment(comment::AbstractString)
 
         # Look for a top-level code block
         code_block_idx = findfirst(x -> typeof(x) == Markdown.Code, parsed_markdown.content)
-        code_block_idx === nothing && return ConfigOptions(nothing, nothing)
+        code_block_idx === nothing && return ConfigOptions()
         
         # If found, try to parse it as yaml and extract some config options
         code_block::Markdown.Code = parsed_markdown.content[code_block_idx]
@@ -87,7 +95,7 @@ function options_from_comment(comment::AbstractString)
         return dict_to_settings(YAML.load(code_block.code))
     catch e
         @warn e
-        return ConfigOptions(nothing, nothing)
+        return ConfigOptions()
     end
 end
 
@@ -118,13 +126,13 @@ function handle_comment(event, phrase::RegexMatch)
         "type" => "compare",
         "reference" => OrderedDict(
             "spec" => something(config.reference_spec, "sirius@develop"),
-            "args" => something(config.reference_args, ""),
+            "args" => something(config.reference_args, String[]),
             "repo" => reference_repo,
             "sha" => reference_sha
         ),
         "current" => OrderedDict(
             "spec" => something(config.spec, "sirius@develop"),
-            "args" => something(config.args, ""),
+            "args" => something(config.args, String[]),
             "repo" => current_repo,
             "sha" => current_sha
         ),
@@ -174,9 +182,8 @@ function handle_comment(event, phrase::RegexMatch)
 end
 
 function run(address = IPv4(0,0,0,0), port = 8080)
-    listener = GitHub.CommentListener(handle_comment, trigger; auth = auth, secret = mysecret)
-    const myauth = GitHub.authenticate(ENV["GITHUB_AUTH"])
-    const mysecret = ENV["MY_SECRET"]
+    listener = GitHub.CommentListener(handle_comment, trigger; auth = auth, secret = ENV["MY_SECRET"])
+    auth[] = GitHub.authenticate(ENV["GITHUB_AUTH"])
     GitHub.run(listener, address, port)
 end
 
