@@ -34,3 +34,36 @@ You can also change the options for the reference and current commit separately:
 >   spec: sirius@develop ^openblas threads=openmp
 >   cmd: ['sirius.scf', '--control.processing_unit=cpu']
 > ```
+
+## How to install it
+Have a webserver and install `julia` and `git` on it.
+
+Install SiriusBenchBot.jl using
+
+```
+$ julia
+] add https://github.com/haampie/SiriusBenchBot.jl.git
+```
+
+Make sure ssh keys are set up such that git can push to the benchmarking
+repo `SiriusBenchBot.benchmark_repo`.
+
+If you're on a vm, it's useful to install nginx as a proxy (`proxy_pass`) and certbot
+to enable https. The julia server run on some non-privileged port such as 8080 as
+a normal user; nginx will just forward data to port 80 / 443.
+
+Set the following env variables before running the julia server:
+- `GITHUB_AUTH`: a personal access token of a user with minimal access to the GitHub repo.
+- `MY_SECRET`: the GitHub secret for webhooks.
+
+Start the julia server with
+```julia
+julia> import SiriusBenchBot
+
+julia> SiriusBenchBot.start_server()
+```
+which by default listens on localhost port 8080.
+
+In your GitHub repo go to Settings > Webhooks and create a new webhook with payload url pointing
+to your server, content type `json`, secret same as the `MY_SECRET` env variable, and triggers
+for "Commit comments", "Issue comments", "Pull request review comments".
