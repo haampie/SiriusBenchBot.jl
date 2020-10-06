@@ -1,7 +1,6 @@
 module SiriusBenchBot
 
 import GitHub, HTTP, YAML, Markdown, JSON
-import GitHub: OAuth2
 import OrderedCollections: OrderedDict
 import Sockets: IPv4
 import Base: RefValue
@@ -13,8 +12,8 @@ const trigger = r".*@siriusbot run.*"ms
 const benchmark_repo = "git@gitlab.com:cscs-ci/electronic-structure/benchmarking.git"
 
 # Just keep the auth bit as a global const value, but defer logging in to starting the
-# server, so keep it around as a Union{Nothing,OAuth2} for now.
-const auth = RefValue{Union{Nothing,OAuth2}}(nothing)
+# server, so keep it around as a Union for now.
+const auth = RefValue{Union{Nothing,GitHub.Authorization}}(nothing)
 
 """
 User-provided config options.
@@ -111,7 +110,7 @@ function handle_comment(event, phrase::RegexMatch)
         reference_sha = event.payload["pull_request"]["base"]["sha"]
         prnumber = event.payload["pull_request"]["number"]
     elseif event.kind == "issue_comment"
-        pr = GitHub.pull_request(event.repository, event.payload["issue"]["number"], auth = auth)
+        pr = GitHub.pull_request(event.repository, event.payload["issue"]["number"], auth = auth[])
         current_repo = pr.head.repo.full_name
         current_sha = pr.head.sha
         reference_repo = pr.base.repo.full_name
@@ -174,7 +173,7 @@ function handle_comment(event, phrase::RegexMatch)
         event.repository,
         prnumber,
         :pr;
-        auth = auth,
+        auth = auth[],
         params = comment_params
     )
 
@@ -182,8 +181,8 @@ function handle_comment(event, phrase::RegexMatch)
 end
 
 function run(address = IPv4(0,0,0,0), port = 8080)
-    listener = GitHub.CommentListener(handle_comment, trigger; auth = auth, secret = ENV["MY_SECRET"])
     auth[] = GitHub.authenticate(ENV["GITHUB_AUTH"])
+    listener = GitHub.CommentListener(handle_comment, trigger; auth = auth[], secret = ENV["MY_SECRET"])
     GitHub.run(listener, address, port)
 end
 
