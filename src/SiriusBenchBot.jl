@@ -180,7 +180,7 @@ function handle_comment(event, phrase::RegexMatch)
     return HTTP.Response(200)
 end
 
-function run(address = IPv4(0,0,0,0), port = 8080)
+function start_server(address = IPv4(0,0,0,0), port = 8080)
     auth[] = GitHub.authenticate(ENV["GITHUB_AUTH"])
     listener = GitHub.CommentListener(handle_comment, trigger; auth = auth[], secret = ENV["MY_SECRET"])
     GitHub.run(listener, address, port)
