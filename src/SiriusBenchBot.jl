@@ -125,13 +125,13 @@ function handle_comment(event, phrase::RegexMatch)
         "type" => "compare",
         "reference" => OrderedDict(
             "spec" => something(config.reference_spec, "sirius@develop"),
-            "cmd" => something(config.reference_cmd, String[]),
+            "cmd" => something(config.reference_cmd, ["sirius.scf"]),
             "repo" => reference_repo,
             "sha" => reference_sha
         ),
         "current" => OrderedDict(
             "spec" => something(config.spec, "sirius@develop"),
-            "cmd" => something(config.cmd, String[]),
+            "cmd" => something(config.cmd, ["sirius.scf"]),
             "repo" => current_repo,
             "sha" => current_sha
         ),
