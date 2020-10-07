@@ -13,7 +13,7 @@ import SiriusBenchBot: options_from_comment
 
         result = options_from_comment(no_options)
 
-        @test result.reference_spec === result.reference_cmd === result.spec === result.cmd === nothing
+        @test result.reference_spec === result.reference_cmd === result.spec === result.cmd === result.reference_ref === nothing
     end
 
     @testset "Only top-level options" begin
@@ -30,7 +30,7 @@ import SiriusBenchBot: options_from_comment
         result = options_from_comment(only_top_level)
 
         @test result.reference_spec == result.spec == "sirius@develop ^spla@2.0.0"
-        @test result.reference_cmd === result.cmd === nothing
+        @test result.reference_cmd === result.cmd === result.reference_ref === nothing
     end
 
     @testset "All level options" begin
@@ -47,6 +47,7 @@ import SiriusBenchBot: options_from_comment
                 spec: sirius@develop +new_feature
             
             reference:
+                ref: develop
                 cmd: ["sirius.scf", "--different", "--arguments"]
             ```
             """
@@ -55,6 +56,7 @@ import SiriusBenchBot: options_from_comment
 
         @test result.reference_spec == "sirius@develop ^spla@2.0.0"
         @test result.reference_cmd == ["sirius.scf", "--different", "--arguments"]
+        @test result.reference_ref == "develop"
         @test result.spec == "sirius@develop +new_feature"
         @test result.cmd == ["sirius.scf", "--some-arg", "--another"]
     end
@@ -71,6 +73,7 @@ import SiriusBenchBot: options_from_comment
                 cmd: ["sirius.scf", "-x", "-y"]
             
             reference:
+                ref: develop
                 spec: "sirius@6.5.4"
                 cmd: ["sirius.scf", "-a", "-b"]
             ```
@@ -80,6 +83,7 @@ import SiriusBenchBot: options_from_comment
 
         @test result.reference_spec == "sirius@6.5.4"
         @test result.reference_cmd == ["sirius.scf", "-a", "-b"]
+        @test result.reference_ref == "develop"
         @test result.spec == "sirius@develop +new_feature"
         @test result.cmd == ["sirius.scf", "-x", "-y"]
     end
@@ -96,6 +100,6 @@ import SiriusBenchBot: options_from_comment
             """
         result = options_from_comment(invalid_yaml)
 
-        @test result.reference_spec === result.reference_cmd === result.spec === result.cmd === nothing
+        @test result.reference_ref === result.reference_spec === result.reference_cmd === result.spec === result.cmd === nothing
     end
 end

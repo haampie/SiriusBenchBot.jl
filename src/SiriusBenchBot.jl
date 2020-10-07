@@ -19,13 +19,14 @@ const auth = RefValue{Union{Nothing,GitHub.Authorization}}(nothing)
 User-provided config options.
 """
 struct ConfigOptions
+    reference_ref::Union{Nothing,String}
     reference_spec::Union{Nothing,String}
     reference_cmd::Union{Nothing,Vector{String}}
     spec::Union{Nothing,String}
     cmd::Union{Nothing,Vector{String}}
 end
 
-ConfigOptions() = ConfigOptions(nothing, nothing, nothing, nothing)
+ConfigOptions() = ConfigOptions(nothing, nothing, nothing, nothing, nothing)
 
 function dict_to_settings(dict)
     # top level spec / cmd
@@ -36,9 +37,11 @@ function dict_to_settings(dict)
     if (reference = get(dict, "reference", nothing)) !== nothing
         reference_spec = get(reference, "spec", nothing)
         reference_cmd = get(reference, "cmd", nothing)
+        reference_ref = get(reference, "ref", nothing)
     else
         reference_spec = nothing
         reference_cmd = nothing
+        reference_ref = nothing
     end
 
     if reference_spec === nothing
@@ -67,6 +70,7 @@ function dict_to_settings(dict)
     end
 
     return ConfigOptions(
+        reference_ref,
         reference_spec,
         reference_cmd,
         current_spec,
@@ -99,15 +103,32 @@ function options_from_comment(comment::AbstractString)
 end
 
 function handle_comment(event, phrase::RegexMatch)
+    if event.kind == "issue_comment" && !haskey(event.payload["issue"], "pull_request")
+        return HTTP.Response(400, "nanosoldier jobs cannot be triggered from issue comments (only PRs or commits)")
+    end
+    if haskey(event.payload, "action") && !in(event.payload["action"], ("created", "opened"))
+        return HTTP.Response(204, "no action taken (submission was from an edit, close, or delete)")
+    end
+
     # Get user-provided options
     config = options_from_comment(phrase.match)
 
     # Get the target data
-    if event.kind == "pull_request"
+    if event.kind == "commit_comment"
+        # When commenting on a commit, the user should provide the ref themselves
+        current_repo = event.repository.full_name
+        current_sha = event.payload["comment"]["commit_id"]
+        reference_repo = event.repository.full_name
+        reference_commit = GitHub.commit(reference_repo, config.reference_ref, auth = auth[])
+        reference_sha = reference_commit.sha
+        fromkind = :commit
+        prnumber = nothing
+    elseif event.kind == "pull_request"
         current_repo = event.payload["pull_request"]["head"]["repo"]["full_name"]
         current_sha = event.payload["pull_request"]["head"]["sha"]
         reference_repo = event.payload["pull_request"]["base"]["repo"]["full_name"]
         reference_sha = event.payload["pull_request"]["base"]["sha"]
+        fromkind = :pr
         prnumber = event.payload["pull_request"]["number"]
     elseif event.kind == "issue_comment"
         pr = GitHub.pull_request(event.repository, event.payload["issue"]["number"], auth = auth[])
@@ -115,34 +136,42 @@ function handle_comment(event, phrase::RegexMatch)
         current_sha = pr.head.sha
         reference_repo = pr.base.repo.full_name
         reference_sha = pr.base.sha
+        fromkind = :pr
         prnumber = pr.number
     else
         return HTTP.Response(200)
     end
 
-    data_buffer = IOBuffer()
-    benchmark_setup = JSON.print(data_buffer, OrderedDict(
-        "type" => "compare",
-        "reference" => OrderedDict(
-            "spec" => something(config.reference_spec, "sirius@develop"),
-            "cmd" => something(config.reference_cmd, ["sirius.scf"]),
-            "repo" => reference_repo,
-            "sha" => reference_sha
-        ),
-        "current" => OrderedDict(
-            "spec" => something(config.spec, "sirius@develop"),
-            "cmd" => something(config.cmd, ["sirius.scf"]),
-            "repo" => current_repo,
-            "sha" => current_sha
-        ),
-        "report_to" => OrderedDict(
-            "repository" => event.repository.full_name,
-            "issue" => prnumber,
-            "type" => "pr"
-        )
-    ), 4)
+    reference = OrderedDict(
+        "spec" => something(config.reference_spec, "sirius@develop"),
+        "cmd" => something(config.reference_cmd, ["sirius.scf"]),
+        "repo" => reference_repo,
+        "sha" => reference_sha
+    )
 
-    bench_setup = String(take!(data_buffer))
+    current = OrderedDict(
+        "spec" => something(config.spec, "sirius@develop"),
+        "cmd" => something(config.cmd, ["sirius.scf"]),
+        "repo" => current_repo,
+        "sha" => current_sha
+    )
+
+    report_to = OrderedDict(
+        "repository" => event.repository.full_name,
+        "type" => prnumber === nothing ? "commit" : "pr"
+    )
+
+    if prnumber !== nothing
+        report_to["issue"] = prnumber
+    end
+
+    setup = OrderedDict(
+        "reference" => reference,
+        "current" => current,
+        "report_to" => report_to
+    )
+
+    bench_setup = JSON.json(setup, 4)
 
     # Create the benchmark
     cd(mktempdir()) do
@@ -171,8 +200,8 @@ function handle_comment(event, phrase::RegexMatch)
 
     GitHub.create_comment(
         event.repository,
-        prnumber,
-        :pr;
+        prnumber === nothing ? current_sha : prnumber,
+        fromkind;
         auth = auth[],
         params = comment_params
     )
