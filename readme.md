@@ -4,6 +4,8 @@ A bot for triggering benchmarks for [SIRIUS](https://github.com/electronic-struc
 
 ## How to trigger it
 
+### Pull requests
+
 Comment on a pull request with 
 
 > @electronic-structure run
@@ -33,6 +35,17 @@ You can also change the options for the reference and current commit separately:
 > reference:
 >   spec: sirius@develop ^openblas threads=openmp
 >   cmd: ['sirius.scf', '--control.processing_unit=cpu']
+> ```
+
+### Commits
+
+You can also comment on a commit, but you have to specify some git ref from the repo to compare against. For instance:
+
+> @electronic-structure run
+> 
+> ```yaml
+> reference:
+>   ref: develop
 > ```
 
 ## How to install it
