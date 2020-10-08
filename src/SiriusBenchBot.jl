@@ -145,21 +145,21 @@ function handle_comment(event, phrase::RegexMatch)
         return HTTP.Response(200)
     end
 
-    reference = OrderedDict(
+    reference = OrderedDict{String,Any}(
         "spec" => something(config.reference_spec, "sirius@develop"),
         "cmd" => something(config.reference_cmd, ["sirius.scf"]),
         "repo" => reference_repo,
         "sha" => reference_sha
     )
 
-    current = OrderedDict(
+    current = OrderedDict{String,Any}(
         "spec" => something(config.spec, "sirius@develop"),
         "cmd" => something(config.cmd, ["sirius.scf"]),
         "repo" => current_repo,
         "sha" => current_sha
     )
 
-    report_to = OrderedDict(
+    report_to = OrderedDict{String,Any}(
         "repository" => event.repository.full_name,
         "type" => prnumber === nothing ? "commit" : "pr"
     )
@@ -168,7 +168,7 @@ function handle_comment(event, phrase::RegexMatch)
         report_to["issue"] = prnumber
     end
 
-    setup = OrderedDict(
+    setup = OrderedDict{String,Any}(
         "reference" => reference,
         "current" => current,
         "report_to" => report_to
