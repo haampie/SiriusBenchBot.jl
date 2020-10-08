@@ -3,7 +3,7 @@ module SiriusBenchBot
 import GitHub, HTTP, YAML, Markdown, JSON
 import OrderedCollections: OrderedDict
 import Sockets: IPv4
-import Base: RefValue
+import Base: RefValue, shell_split
 
 # If a comment matches this regex, it starts a bench
 const trigger = r".*@electronic-structure run.*"ms
@@ -31,12 +31,14 @@ ConfigOptions() = ConfigOptions(nothing, nothing, nothing, nothing, nothing)
 function dict_to_settings(dict)
     # top level spec / cmd
     default_spec = get(dict, "spec", nothing)
-    default_cmd = get(dict, "cmd", nothing)
+    default_cmd_str = get(dict, "cmd", nothing)
+    default_cmd = default_cmd_str === nothing ? nothing : shell_split(default_cmd_str)
 
     # reference level settings
     if (reference = get(dict, "reference", nothing)) !== nothing
         reference_spec = get(reference, "spec", nothing)
-        reference_cmd = get(reference, "cmd", nothing)
+        reference_cmd_str = get(reference, "cmd", nothing)
+        reference_cmd = reference_cmd_str === nothing ? nothing : shell_split(reference_cmd_str)
         reference_ref = get(reference, "ref", nothing)
     else
         reference_spec = nothing
@@ -55,7 +57,8 @@ function dict_to_settings(dict)
     # current level settings
     if (current = get(dict, "current", nothing)) !== nothing
         current_spec = get(current, "spec", nothing)
-        current_cmd = get(current, "cmd", nothing)
+        current_cmd_str = get(current, "cmd", nothing)
+        current_cmd = current_cmd_str === nothing ? nothing : shell_split(current_cmd_str)
     else
         current_spec = nothing
         current_cmd = nothing

@@ -41,14 +41,14 @@ import SiriusBenchBot: options_from_comment
 
             ```
             spec: sirius@develop ^spla@2.0.0
-            cmd: ["sirius.scf", "--some-arg", "--another"]
+            cmd: sirius.scf --some-arg --another
 
             current:
                 spec: sirius@develop +new_feature
             
             reference:
                 ref: develop
-                cmd: ["sirius.scf", "--different", "--arguments"]
+                cmd: sirius.scf --different --arguments
             ```
             """
 
@@ -70,12 +70,12 @@ import SiriusBenchBot: options_from_comment
             ```
             current:
                 spec: sirius@develop +new_feature
-                cmd: ["sirius.scf", "-x", "-y"]
+                cmd: sirius.scf -x -y
             
             reference:
                 ref: develop
                 spec: "sirius@6.5.4"
-                cmd: ["sirius.scf", "-a", "-b"]
+                cmd: sirius.scf -a -b
             ```
             """
 

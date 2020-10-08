@@ -18,7 +18,7 @@ To change the build and run behavior, add a top-level code block to your comment
 > 
 > ```yaml
 > spec: sirius@develop ^intel-mkl
-> cmd: ['sirius.scf', '--control.processing_unit=gpu']
+> cmd: sirius.scf --control.processing_unit=gpu
 > ```
 
 will use the provided spec in spack to build both the reference and current commit, and will run using the `--control.processing_unit=gpu` flag.
@@ -30,11 +30,11 @@ You can also change the options for the reference and current commit separately:
 > ```yaml
 > current:
 >   spec: sirius@develop ^intel-mkl
->   cmd: ['sirius.scf', '--control.processing_unit=gpu']
+>   cmd: sirius.scf --control.processing_unit=gpu
 > 
 > reference:
 >   spec: sirius@develop ^openblas threads=openmp
->   cmd: ['sirius.scf', '--control.processing_unit=cpu']
+>   cmd: sirius.scf --control.processing_unit=cpu
 > ```
 
 ### Commits
