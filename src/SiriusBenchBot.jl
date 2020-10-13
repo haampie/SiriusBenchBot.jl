@@ -194,11 +194,11 @@ function handle_comment(event, phrase::RegexMatch)
     comment_params = Dict{String, Any}("body" =>
         """
         <details>
-            <summary>Benchmark submitted:</summary>
+        <summary>Benchmark submitted:</summary>
 
-            ```json
-            $bench_setup
-            ```
+        ```json
+        $bench_setup
+        ```
         </details>
         """
     )
