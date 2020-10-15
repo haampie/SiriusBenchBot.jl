@@ -22,16 +22,19 @@ struct ConfigOptions
     reference_ref::Union{Nothing,String}
     reference_spec::Union{Nothing,String}
     reference_cmd::Union{Nothing,Vector{String}}
+    reference_build::Union{Nothing,Bool}
     spec::Union{Nothing,String}
     cmd::Union{Nothing,Vector{String}}
+    build::Union{Nothing,Bool}
 end
 
-ConfigOptions() = ConfigOptions(nothing, nothing, nothing, nothing, nothing)
+ConfigOptions() = ConfigOptions(nothing, nothing, nothing, nothing, nothing, nothing, nothing)
 
 function dict_to_settings(dict)
     # top level spec / cmd
     default_spec = get(dict, "spec", nothing)
     default_cmd_str = get(dict, "cmd", nothing)
+    default_build = get(dict, "build", nothing)
     default_cmd = default_cmd_str === nothing ? nothing : shell_split(default_cmd_str)
 
     # reference level settings
@@ -40,10 +43,12 @@ function dict_to_settings(dict)
         reference_cmd_str = get(reference, "cmd", nothing)
         reference_cmd = reference_cmd_str === nothing ? nothing : shell_split(reference_cmd_str)
         reference_ref = get(reference, "ref", nothing)
+        reference_build = get(reference, "build", true)
     else
         reference_spec = nothing
         reference_cmd = nothing
         reference_ref = nothing
+        reference_build = nothing
     end
 
     if reference_spec === nothing
@@ -54,14 +59,20 @@ function dict_to_settings(dict)
         reference_cmd = default_cmd
     end
 
+    if reference_build === nothing
+        reference_build = default_build
+    end
+
     # current level settings
     if (current = get(dict, "current", nothing)) !== nothing
         current_spec = get(current, "spec", nothing)
         current_cmd_str = get(current, "cmd", nothing)
         current_cmd = current_cmd_str === nothing ? nothing : shell_split(current_cmd_str)
+        current_build = get(current, "build", nothing)
     else
         current_spec = nothing
         current_cmd = nothing
+        current_build = nothing
     end
 
     if current_spec === nothing
@@ -72,12 +83,18 @@ function dict_to_settings(dict)
         current_cmd = default_cmd
     end
 
+    if current_build === nothing
+        current_build = default_build
+    end
+
     return ConfigOptions(
         reference_ref,
         reference_spec,
         reference_cmd,
+        reference_build,
         current_spec,
-        current_cmd
+        current_cmd,
+        current_build
     )
 end
 
@@ -149,14 +166,16 @@ function handle_comment(event, phrase::RegexMatch)
         "spec" => something(config.reference_spec, "sirius@develop"),
         "cmd" => something(config.reference_cmd, ["sirius.scf"]),
         "repo" => reference_repo,
-        "sha" => reference_sha
+        "sha" => reference_sha,
+        "build" => something(config.reference_build, true)
     )
 
     current = OrderedDict{String,Any}(
         "spec" => something(config.spec, "sirius@develop"),
         "cmd" => something(config.cmd, ["sirius.scf"]),
         "repo" => current_repo,
-        "sha" => current_sha
+        "sha" => current_sha,
+        "build" => something(config.build, true)
     )
 
     report_to = OrderedDict{String,Any}(
