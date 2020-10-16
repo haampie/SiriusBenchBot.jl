@@ -88,7 +88,7 @@ end
 snip(str, len) = str[1:min(len, end)]
 snipsha(sha) = snip(sha, 7)
 
-function generate_comment(bench_setup::String, bench_sha::String, id::String; with_build_cache_message = false)
+function generate_comment(bench_setup::AbstractString, bench_sha::AbstractString, id::AbstractString; with_build_cache_message = false)
     stream = IOBuffer()
 
     println(stream, """
