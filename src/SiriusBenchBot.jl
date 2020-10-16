@@ -4,6 +4,7 @@ import GitHub, HTTP, YAML, Markdown, JSON
 import OrderedCollections: OrderedDict
 import Sockets: IPv4
 import Base: RefValue, shell_split
+import UUIDs: uuid4
 
 # If a comment matches this regex, it starts a bench
 const trigger = r".*@electronic-structure run.*"ms
@@ -19,22 +20,21 @@ const auth = RefValue{Union{Nothing,GitHub.Authorization}}(nothing)
 User-provided config options.
 """
 struct ConfigOptions
+    id::Union{Nothing,String}
     reference_ref::Union{Nothing,String}
     reference_spec::Union{Nothing,String}
     reference_cmd::Union{Nothing,Vector{String}}
-    reference_build::Union{Nothing,Bool}
     spec::Union{Nothing,String}
     cmd::Union{Nothing,Vector{String}}
-    build::Union{Nothing,Bool}
 end
 
-ConfigOptions() = ConfigOptions(nothing, nothing, nothing, nothing, nothing, nothing, nothing)
+ConfigOptions() = ConfigOptions(nothing, nothing, nothing, nothing, nothing, nothing)
 
 function dict_to_settings(dict)
     # top level spec / cmd
     default_spec = get(dict, "spec", nothing)
     default_cmd_str = get(dict, "cmd", nothing)
-    default_build = get(dict, "build", nothing)
+    id = get(dict, "id", nothing)
     default_cmd = default_cmd_str === nothing ? nothing : shell_split(default_cmd_str)
 
     # reference level settings
@@ -43,12 +43,10 @@ function dict_to_settings(dict)
         reference_cmd_str = get(reference, "cmd", nothing)
         reference_cmd = reference_cmd_str === nothing ? nothing : shell_split(reference_cmd_str)
         reference_ref = get(reference, "ref", nothing)
-        reference_build = get(reference, "build", true)
     else
         reference_spec = nothing
         reference_cmd = nothing
         reference_ref = nothing
-        reference_build = nothing
     end
 
     if reference_spec === nothing
@@ -59,20 +57,14 @@ function dict_to_settings(dict)
         reference_cmd = default_cmd
     end
 
-    if reference_build === nothing
-        reference_build = default_build
-    end
-
     # current level settings
     if (current = get(dict, "current", nothing)) !== nothing
         current_spec = get(current, "spec", nothing)
         current_cmd_str = get(current, "cmd", nothing)
         current_cmd = current_cmd_str === nothing ? nothing : shell_split(current_cmd_str)
-        current_build = get(current, "build", nothing)
     else
         current_spec = nothing
         current_cmd = nothing
-        current_build = nothing
     end
 
     if current_spec === nothing
@@ -83,19 +75,39 @@ function dict_to_settings(dict)
         current_cmd = default_cmd
     end
 
-    if current_build === nothing
-        current_build = default_build
-    end
-
     return ConfigOptions(
+        id,
         reference_ref,
         reference_spec,
         reference_cmd,
-        reference_build,
         current_spec,
         current_cmd,
-        current_build
     )
+end
+
+function generate_comment(bench_setup::String, id::String; with_build_cache_message = false)
+    stream = IOBuffer()
+
+    println(stream, """
+                    <details>
+                    <summary>Benchmark $id submitted:</summary>
+
+                    ```json
+                    $bench_setup
+                    ```
+                    </details>
+                    """)
+
+    if with_build_cache_message
+        println(stream, """
+                        To trigger benchmarks again using cached binaries, use
+                        ```yaml
+                        id: "$id"
+                        ```
+                        """)
+    end
+
+    return String(take!(stream))
 end
 
 """
@@ -133,6 +145,13 @@ function handle_comment(event, phrase::RegexMatch)
     # Get user-provided options
     config = options_from_comment(phrase.match)
 
+    # Get or generate an identifier.
+    id = if config.id === nothing
+        string(uuid4())
+    else
+        config.id
+    end
+
     # Get the target data
     if event.kind == "commit_comment"
         # When commenting on a commit, the user should provide the ref themselves
@@ -167,7 +186,6 @@ function handle_comment(event, phrase::RegexMatch)
         "cmd" => something(config.reference_cmd, ["sirius.scf"]),
         "repo" => reference_repo,
         "sha" => reference_sha,
-        "build" => something(config.reference_build, true)
     )
 
     current = OrderedDict{String,Any}(
@@ -175,7 +193,6 @@ function handle_comment(event, phrase::RegexMatch)
         "cmd" => something(config.cmd, ["sirius.scf"]),
         "repo" => current_repo,
         "sha" => current_sha,
-        "build" => something(config.build, true)
     )
 
     report_to = OrderedDict{String,Any}(
@@ -188,6 +205,7 @@ function handle_comment(event, phrase::RegexMatch)
     end
 
     setup = OrderedDict{String,Any}(
+        "id" => id,
         "reference" => reference,
         "current" => current,
         "report_to" => report_to
@@ -210,24 +228,14 @@ function handle_comment(event, phrase::RegexMatch)
         end
     end
 
-    comment_params = Dict{String, Any}("body" =>
-        """
-        <details>
-        <summary>Benchmark submitted:</summary>
-
-        ```json
-        $bench_setup
-        ```
-        </details>
-        """
-    )
-
     GitHub.create_comment(
         event.repository,
         prnumber === nothing ? current_sha : prnumber,
         fromkind;
         auth = auth[],
-        params = comment_params
+        params = Dict{String, Any}(
+            "body" => generate_comment(bench_setup, id, with_build_cache_message = config.id === nothing)
+        )
     )
 
     return HTTP.Response(200)
