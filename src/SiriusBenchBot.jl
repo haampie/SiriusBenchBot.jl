@@ -102,7 +102,7 @@ function generate_comment(bench_setup::String, id::String; with_build_cache_mess
         println(stream, """
                         To trigger benchmarks again using cached binaries, include the following in your comment:
                         ```yaml
-                        id: "$id"
+                        id: $id
                         ```
                         """)
     end
