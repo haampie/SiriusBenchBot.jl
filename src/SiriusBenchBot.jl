@@ -93,7 +93,7 @@ function generate_comment(bench_setup::AbstractString, bench_sha::AbstractString
 
     println(stream, """
                     <details>
-                    <summary>Benchmark `benchmarks/$(snipsha(bench_sha))` submitted:</summary>
+                    <summary>Benchmark <code>benchmarks/$(snipsha(bench_sha))</code> submitted:</summary>
 
                     ```json
                     $bench_setup
