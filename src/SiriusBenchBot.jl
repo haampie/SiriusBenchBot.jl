@@ -90,7 +90,7 @@ function generate_comment(bench_setup::String, id::String; with_build_cache_mess
 
     println(stream, """
                     <details>
-                    <summary>Benchmark $id submitted:</summary>
+                    <summary>Benchmark submitted</summary>
 
                     ```json
                     $bench_setup
@@ -100,7 +100,7 @@ function generate_comment(bench_setup::String, id::String; with_build_cache_mess
 
     if with_build_cache_message
         println(stream, """
-                        To trigger benchmarks again using cached binaries, use
+                        To trigger benchmarks again using cached binaries, include the following in your comment:
                         ```yaml
                         id: "$id"
                         ```
