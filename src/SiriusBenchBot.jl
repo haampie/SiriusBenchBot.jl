@@ -186,6 +186,7 @@ function handle_comment(event, phrase::RegexMatch)
         "cmd" => something(config.reference_cmd, ["sirius.scf"]),
         "repo" => reference_repo,
         "sha" => reference_sha,
+        "build" => config.id === nothing
     )
 
     current = OrderedDict{String,Any}(
@@ -193,6 +194,7 @@ function handle_comment(event, phrase::RegexMatch)
         "cmd" => something(config.cmd, ["sirius.scf"]),
         "repo" => current_repo,
         "sha" => current_sha,
+        "build" => config.id === nothing
     )
 
     report_to = OrderedDict{String,Any}(
