@@ -85,12 +85,15 @@ function dict_to_settings(dict)
     )
 end
 
-function generate_comment(bench_setup::String, id::String; with_build_cache_message = false)
+snip(str, len) = str[1:min(len, end)]
+snipsha(sha) = snip(sha, 7)
+
+function generate_comment(bench_setup::String, bench_sha::String, id::String; with_build_cache_message = false)
     stream = IOBuffer()
 
     println(stream, """
                     <details>
-                    <summary>Benchmark submitted</summary>
+                    <summary>Benchmark `benchmarks/$(snipsha(bench_sha))` submitted:</summary>
 
                     ```json
                     $bench_setup
@@ -216,17 +219,20 @@ function handle_comment(event, phrase::RegexMatch)
     bench_setup = JSON.json(setup, 4)
 
     # Create the benchmark
-    cd(mktempdir()) do
+    bench_sha = cd(mktempdir()) do
         run(`git clone $benchmark_repo benchmarking`)
 
-        cd("benchmarking") do
+        return cd("benchmarking") do
             open("benchmark.json", "w") do io
                 print(io, bench_setup)
             end
 
             run(`git add -A`)
             run(`git commit --allow-empty -m "Benchmark $current_sha vs $reference_sha"`)
+            bench_sha = readchomp(`git rev-parse HEAD`)
+            run(`git pull -X ours`) # race conditions...
             run(`git push`)
+            return bench_sha
         end
     end
 
@@ -236,7 +242,7 @@ function handle_comment(event, phrase::RegexMatch)
         fromkind;
         auth = auth[],
         params = Dict{String, Any}(
-            "body" => generate_comment(bench_setup, id, with_build_cache_message = config.id === nothing)
+            "body" => generate_comment(bench_setup, bench_sha, id, with_build_cache_message = config.id === nothing)
         )
     )
 
