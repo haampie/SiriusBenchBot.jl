@@ -161,8 +161,11 @@ function handle_comment(event, phrase::RegexMatch)
         current_repo = event.repository.full_name
         current_sha = event.payload["comment"]["commit_id"]
         reference_repo = event.repository.full_name
-        reference_commit = GitHub.commit(reference_repo, config.reference_ref, auth = auth[])
-        reference_sha = reference_commit.sha
+        reference_sha = if config.reference_ref === nothing
+            nothing
+        else
+            GitHub.commit(reference_repo, config.reference_ref, auth = auth[]).sha::String
+        end
         fromkind = :commit
         prnumber = nothing
     elseif event.kind == "pull_request"
@@ -184,14 +187,6 @@ function handle_comment(event, phrase::RegexMatch)
         return HTTP.Response(200)
     end
 
-    reference = OrderedDict{String,Any}(
-        "spec" => something(config.reference_spec, "sirius@develop"),
-        "cmd" => something(config.reference_cmd, ["sirius.scf"]),
-        "repo" => reference_repo,
-        "sha" => reference_sha,
-        "build" => config.id === nothing
-    )
-
     current = OrderedDict{String,Any}(
         "spec" => something(config.spec, "sirius@develop"),
         "cmd" => something(config.cmd, ["sirius.scf"]),
@@ -209,12 +204,27 @@ function handle_comment(event, phrase::RegexMatch)
         report_to["issue"] = prnumber
     end
 
-    setup = OrderedDict{String,Any}(
-        "id" => id,
-        "reference" => reference,
-        "current" => current,
-        "report_to" => report_to
-    )
+    # Let's keep the json in a nice order with/without "reference".
+    setup = if reference_sha !== nothing
+        OrderedDict{String,Any}(
+            "id" => id,
+            "reference" => OrderedDict{String,Any}(
+                "spec" => something(config.reference_spec, "sirius@develop"),
+                "cmd" => something(config.reference_cmd, ["sirius.scf"]),
+                "repo" => reference_repo,
+                "sha" => reference_sha,
+                "build" => config.id === nothing
+            ),
+            "current" => current,
+            "report_to" => report_to
+        )
+    else
+        OrderedDict{String,Any}(
+            "id" => id,
+            "current" => current,
+            "report_to" => report_to
+        )
+    end
 
     bench_setup = JSON.json(setup, 4)
 
