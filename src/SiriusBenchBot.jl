@@ -137,8 +137,8 @@ function options_from_comment(comment::AbstractString)
     end
 end
 
-commit_message(curr:AbstractString, ref::Nothing) = "Benchmarking $(snipsha(curr))"
-commit_message(curr:AbstractString, ref::AbstractString) = "Benchmarking $(snipsha(curr)) vs $(snipsha(ref))"
+commit_message(curr::AbstractString, ref::Nothing) = "Benchmarking $(snipsha(curr))"
+commit_message(curr::AbstractString, ref::AbstractString) = "Benchmarking $(snipsha(curr)) vs $(snipsha(ref))"
 
 function handle_comment(event, phrase::RegexMatch)
     if event.kind == "issue_comment" && !haskey(event.payload["issue"], "pull_request")
