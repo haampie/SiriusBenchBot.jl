@@ -137,6 +137,9 @@ function options_from_comment(comment::AbstractString)
     end
 end
 
+commit_message(curr:AbstractString, ref::Nothing) = "Benchmarking $(snipsha(curr))"
+commit_message(curr:AbstractString, ref::AbstractString) = "Benchmarking $(snipsha(curr)) vs $(snipsha(ref))"
+
 function handle_comment(event, phrase::RegexMatch)
     if event.kind == "issue_comment" && !haskey(event.payload["issue"], "pull_request")
         return HTTP.Response(400, "nanosoldier jobs cannot be triggered from issue comments (only PRs or commits)")
@@ -238,7 +241,8 @@ function handle_comment(event, phrase::RegexMatch)
             end
 
             run(`git add -A`)
-            run(`git commit --allow-empty -m "Benchmark $current_sha vs $reference_sha"`)
+            message = commit_message(current_sha, reference_sha)
+            run(`git commit --allow-empty -m "$message"`)
             bench_sha = readchomp(`git rev-parse HEAD`)
             run(`git pull -X ours`) # race conditions...
             run(`git push`)
